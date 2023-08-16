@@ -1,0 +1,133 @@
+﻿@model IEnumerable<ProductDto>
+
+
+
+<div style="position:fixed; bottom:5px; right:5px;">
+
+
+    <div class="container mt-5">
+        <div class="row">
+            <h1 class="text-center mb-4">Canlı Sohbet</h1>
+            <div class="col-md-8 offset-md-2">
+                <div class="chat-box p-3 mb-3" id="lastMessages">
+                
+                </div>
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="chat-customer-name" placeholder="Adınızı yazınız...">
+                  
+                    <input type="text" class="form-control" id="chat-input" placeholder="Mesajınızı yazın...">
+                    <br />
+                    <button class="btn btn-primary" onclick="createMessage();">Gönder</button>
+                </div>
+            </div>
+        </div>
+    </div>
+  
+</div>
+
+
+<form>
+
+    <div class="container row">
+
+        @foreach (var product in Model)
+        {
+            <div class="col-4 ">
+                <div class="p-0 my-3 border">
+                    <div class="card">
+                        
+                        <img src="~/Uploads/@product.ImageUrl"  class="card-img-top" alt="@product.ImageUrl">
+                        <div class="card-body">
+                            <h3 class="card-title text-success">@product.Name</h3>
+                            <span class="badge badge-light mb-2 ">@product.CategoryName</span>
+                            <p class="card-text">@Html.Raw(product.Description)</p>
+                            <div class="row">
+                                <div class="col pt-1">
+                                    <span style="font-size:23px;">@string.Format("{0:c}", product.Price)</span>
+                                </div>
+                                <div class="col">
+                                    <a asp-action="Details" asp-route-productId="@product.ProductId"
+                                       class="btn btn-success form-control">Details</a>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+</form>
+
+
+<script src="~/js/signalr/signalr.js" type="text/javascript"></script>
+<script>
+
+
+    (function setupConnection() {
+
+        const inputElement = document.getElementById("chat-input");
+        const nameElement = document.getElementById("chat-customer-name");
+       
+       
+
+        var connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7013/chatHub")
+            .build();
+
+
+       connection.on("customerchat", function (message) {
+           var newOrderNode = document.createElement("div");
+           newOrderNode.classList.add("col-lg-12");
+           newOrderNode.className = "message";
+           var textnode = document.createTextNode(`${userName} - ${message.content}`);
+           newOrderNode.appendChild(textnode);
+           var orderDiv = document.getElementById("lastMessages");
+           orderDiv.insertBefore(newOrderNode, orderDiv.firstChild);
+     
+       });
+
+        
+
+        inputElement.addEventListener("input", () => {
+            const isTyping = inputElement.value.length > 0;
+            console.log(isTyping);
+            console.log(nameElement.value)
+            connection.invoke("SendTypingStatus", nameElement.value, isTyping);
+        });
+
+        connection.start().catch(err => console.error(err.toString())).then(response => console.log("connected"));
+
+
+    })();
+
+ 
+    //setupConnection();
+    function createMessage() {
+
+        const message = document.getElementById("chat-input").value;
+        const customerName = document.getElementById("chat-customer-name").value;
+
+        console.log(message)
+        console.log(customerName)
+       
+
+        fetch("https://localhost:7013/api/chat", {
+            method: "POST",
+            body: JSON.stringify({
+                content: customerName + " : " + message
+                //, size
+            }),
+            headers: {
+                'content-type': 'application/json'
+            }
+        }).then(response => {
+            console.log("message created");
+        });
+    }
+</script>
+
+
+
